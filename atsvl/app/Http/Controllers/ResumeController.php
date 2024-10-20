@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Smalot\PdfParser\Parser as PdfParser;
 use PhpOffice\PhpWord\IOFactory as WordIOFactory;
+use PhpOffice\PhpWord\Element\Text;
+use PhpOffice\PhpWord\Element\TextRun;
+
 
 class ResumeController extends Controller
 {
@@ -55,27 +58,23 @@ class ResumeController extends Controller
     $phpWord = WordIOFactory::load($filePath);
     $text = '';
 
-    // Loop through each section in the document
     foreach ($phpWord->getSections() as $section) {
-        // Loop through each element in the section
         foreach ($section->getElements() as $element) {
-            // Check if the element is a text run
-            if (method_exists($element, 'getElements')) {
-                foreach ($element->getElements() as $textElement) {
-                    if (method_exists($textElement, 'getText')) {
-                        $text .= $textElement->getText() . "\n";
+            if ($element instanceof Text) {
+                $text .= $element->getText() . "\n";
+            } elseif ($element instanceof TextRun) {
+                foreach ($element->getElements() as $textRunElement) {
+                    if ($textRunElement instanceof Text) {
+                        $text .= $textRunElement->getText();
                     }
                 }
-            } elseif (method_exists($element, 'getText')) {
-                // If the element itself has text
-                $text .= $element->getText() . "\n";
+                $text .= "\n";
             }
         }
     }
 
     return $this->extractInformation($text);
 }
-
     private function extractInformation($text)
     {
         return [
